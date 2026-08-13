@@ -43,9 +43,55 @@ JSON 结构：
   "distinctive": ["", ""]
 }`;
 
+interface CuteElement {
+  key: string;
+  prompt: string;
+  requiresTeeth?: boolean;
+}
+
+const CUTE_ELEMENTS: CuteElement[] = [
+  {
+    key: "white-sunglasses-low",
+    prompt:
+      "戴一副白色框的椭圆形小墨镜，低低地滑到鼻尖架着，眼睛从墨镜上方俏皮地看出来",
+  },
+  {
+    key: "black-sunglasses-head",
+    prompt: "一副黑色墨镜推在头顶的头发上架着，像个刚从海边回来的小潮人",
+  },
+  {
+    key: "pink-bow",
+    prompt: "头顶发间别着一个大大的粉色缎面蝴蝶结，软软的很有质感",
+  },
+  {
+    key: "colorful-clips",
+    prompt: "头发两侧别着几只彩色小发夹（粉色、黄色、蓝色的小按扣发夹）",
+  },
+  {
+    key: "ear-studs",
+    prompt: "耳垂上戴着一对小小的爱心耳钉，精致闪亮",
+  },
+  {
+    key: "teeth-gems",
+    prompt:
+      "牙齿上贴着几颗闪闪发光的小钻石牙饰，笑起来牙齿 bling bling 地闪着光",
+    requiresTeeth: true,
+  },
+];
+
+/** Randomly pick 0-2 cute accessory easter eggs; teeth gems only for toothy smiles. */
+export function pickCuteElements(showsTeeth: boolean): string[] {
+  const pool = CUTE_ELEMENTS.filter((e) => !e.requiresTeeth || showsTeeth);
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const roll = Math.random();
+  const count = roll < 0.15 ? 0 : roll < 0.7 ? 1 : 2;
+  return shuffled.slice(0, count).map((e) => e.prompt);
+}
+
 export function buildGenerationPrompt(
   f: ExtractedFeatures,
-  hasSourcePhoto = false
+  hasSourcePhoto = false,
+  cuteElements: string[] = []
 ): string {
   const parts: string[] = [];
 
@@ -106,6 +152,13 @@ export function buildGenerationPrompt(
   if (f.distinctive.length > 0) {
     parts.push(
       `特别注意（重点强调，要比照片中呈现得更明显）：${f.distinctive.join("；")}。`
+    );
+  }
+
+  if (cuteElements.length > 0) {
+    parts.push(
+      `可爱小彩蛋（要画得精致真实）：${cuteElements.join("；")}。` +
+        "彩蛋饰品不能遮挡五官辨识度，不改变发型和长相本身。"
     );
   }
 

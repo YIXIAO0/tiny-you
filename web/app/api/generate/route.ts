@@ -4,6 +4,7 @@ import {
   buildGenerationPrompt,
   extractFeatures,
   generateAvatar,
+  pickCuteElements,
 } from "@/lib/pipeline";
 import { normalizeFraming } from "@/lib/normalize";
 import { applyWatermark } from "@/lib/watermark";
@@ -42,7 +43,13 @@ export async function POST(req: NextRequest) {
       features = await extractFeatures(body.imageDataUrl);
     }
 
-    const prompt = buildGenerationPrompt(features, Boolean(body.imageDataUrl));
+    const showsTeeth = /露齿|大笑|露出牙|咧嘴/.test(features.expression.type);
+    const cuteElements = pickCuteElements(showsTeeth);
+    const prompt = buildGenerationPrompt(
+      features,
+      Boolean(body.imageDataUrl),
+      cuteElements
+    );
     const rawUrl = await generateAvatar(prompt, body.imageDataUrl);
 
     const imgRes = await fetch(rawUrl);
