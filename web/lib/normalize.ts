@@ -74,6 +74,10 @@ export async function normalizeFraming(
     })
     .toBuffer();
 
+  // White-point correction: measure the background tint and scale it up to
+  // pure white so every portrait ships on a true-white canvas.
+  const gain = (v: number): number =>
+    v > 0 ? Math.min(255 / v, 1.08) : 1;
   return sharp(extended)
     .extract({
       left: Math.round(pad + cx - frame / 2),
@@ -81,6 +85,7 @@ export async function normalizeFraming(
       width: frame,
       height: frame,
     })
+    .linear([gain(bg.r), gain(bg.g), gain(bg.b)], [0, 0, 0])
     .jpeg({ quality: 92 })
     .toBuffer();
 }
