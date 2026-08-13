@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     const showsTeeth = /露齿|大笑|露出牙|咧嘴/.test(features.expression.type);
-    const cuteElements = pickCuteElements(showsTeeth);
+    const cuteElements = pickCuteElements(showsTeeth, features.basic.gender);
     const prompt = buildGenerationPrompt(
       features,
       Boolean(body.imageDataUrl),

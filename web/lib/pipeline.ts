@@ -47,6 +47,7 @@ interface CuteElement {
   key: string;
   prompt: string;
   requiresTeeth?: boolean;
+  girlsOnly?: boolean;
 }
 
 const CUTE_ELEMENTS: CuteElement[] = [
@@ -62,14 +63,17 @@ const CUTE_ELEMENTS: CuteElement[] = [
   {
     key: "pink-bow",
     prompt: "头顶发间别着一个大大的粉色缎面蝴蝶结，软软的很有质感",
+    girlsOnly: true,
   },
   {
     key: "colorful-clips",
     prompt: "头发两侧别着几只彩色小发夹（粉色、黄色、蓝色的小按扣发夹）",
+    girlsOnly: true,
   },
   {
     key: "ear-studs",
     prompt: "耳垂上戴着一对小小的爱心耳钉，精致闪亮",
+    girlsOnly: true,
   },
   {
     key: "teeth-gems",
@@ -80,8 +84,11 @@ const CUTE_ELEMENTS: CuteElement[] = [
 ];
 
 /** Randomly pick 0-2 cute accessory easter eggs; teeth gems only for toothy smiles. */
-export function pickCuteElements(showsTeeth: boolean): string[] {
-  const pool = CUTE_ELEMENTS.filter((e) => !e.requiresTeeth || showsTeeth);
+export function pickCuteElements(showsTeeth: boolean, gender = ""): string[] {
+  const isGirl = gender.includes("\u5973");
+  const pool = CUTE_ELEMENTS.filter(
+    (e) => (!e.requiresTeeth || showsTeeth) && (!e.girlsOnly || isGirl)
+  );
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   // At most ONE accessory per portrait — stacking reads as clutter.
   const count = Math.random() < 0.15 ? 0 : 1;
@@ -99,8 +106,9 @@ export function buildGenerationPrompt(
     parts.push(
       "任务：把输入照片中的孩子变回TA三四岁婴幼儿时期的样子，做成可爱的大头贴贴纸。" +
         "两条同时成立：①是同一个人——保留五官特征和神韵，家人一眼认出；" +
-        "②年龄明显变小到3-4岁——圆脑袋、饱满额头、短小下巴，脸颊有柔软的婴儿肥轻轻鼓起。" +
-        "脸型分寸：宽高比例自然协调，绝不把脸画宽画胖，禁止大饼脸、禁止双下巴。" +
+        "②年龄明显变小到3-4岁——幼态感来自饱满额头、柔和短小的下巴和柔软肤质，不靠把脸画圆。" +
+        "脸型忠实于本人：瘦长脸就是清秀的小瘦脸，圆脸才是圆脸，绝不把瘦脸画圆画宽，禁止大饼脸、禁止双下巴。" +
+        "气质忠实于本人：帅气的就是帅气可爱，清秀的就是清秀可爱，漂亮的就是漂亮可爱。" +
         "构图（与照片无关）：纯白背景上一个剪出来的悬浮头部，下巴边缘即内容结束，绝无脖子、肩膀、衣物。" +
         "发型跟随照片（颜色、卷直、长短、刘海、蓬松、遮耳），发质是幼儿的细软胎毛感。" +
         "这个孩子最有辨识度的特征要比照片里更明显：" +
@@ -166,8 +174,8 @@ export function buildGenerationPrompt(
   );
 
   parts.push(
-    "整体氛围（重点）：软萌可爱的幼儿感——肉嘟嘟的婴儿肥脸颊、柔软带绒毛感的发丝、奶萌天真的气质，" +
-      "像让人想捏一下脸的小娃娃，绝不能有成熟感或大人感；但注意：可爱来自氛围和肉感，五官的大小形状仍严格忠实于上述描述，不靠放大眼睛来可爱。" +
+    "整体氛围（重点）：软萌可爱的幼儿感——柔软带绒毛感的发丝、柔和的奶萌气质，绝不能有成熟感或大人感；" +
+      "但注意：可爱来自气质和光线，脸型和五官的大小形状仍严格忠实于上述描述，不把脸画圆、不放大眼睛。" +
       "如果露出牙齿，牙齿要洁白、干净、有健康光泽。" +
       "摄影级写实质感，柔和温暖的影棚奶油光，发丝有细碎绒毛细节，头部边缘干净利落，纯白背景。"
   );
@@ -224,9 +232,11 @@ export async function extractFeatures(
 
 /** Pass 1 of the i2i pipeline: a single-purpose de-aging transform. */
 export const DEAGE_PROMPT =
-  "把照片中的孩子变回TA三四岁婴幼儿时期的样子：圆圆的脑袋、饱满的大额头、短小的下巴，" +
-  "脸颊有柔软的婴儿肥轻轻鼓起；五官幼态化但严格保留这个人的特征和神韵——是同一个人的婴幼儿版本，家人一眼认出。" +
-  "脸的宽高比例自然协调，不把脸画宽。发型样式跟随照片（颜色、卷直、长短、刘海），发质变成幼儿的细软胎毛感。" +
+  "把照片中的人物变回TA三四岁幼童时期的样子：五官幼态化但严格保留这个人的特征和神韵——是同一个人的幼童版本，家人一眼认出。" +
+  "脸型必须跟随本人：本人是瘦长脸就画成清秀的小瘦脸，本人是圆脸才画圆脸，绝不把瘦脸画圆画胖。" +
+  "幼态感来自五官比例（饱满的额头、柔和短小的下巴、偏低的五官位置）和柔软的皮肤质感，不靠把脸加宽加圆。" +
+  "气质跟随本人：帅气的就是帅气可爱的小孩，清秀的就是清秀可爱的小孩，漂亮的就是漂亮可爱的小孩。" +
+  "发型样式跟随照片（颜色、卷直、长短、刘海），发质变成幼儿的细软发质。" +
   "纯白背景，画面里只有完整的头部，没有脖子、肩膀和衣物。摄影级写实，不加任何饰品。";
 
 export async function generateAvatar(
