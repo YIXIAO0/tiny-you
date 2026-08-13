@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   DEAGE_PROMPT,
   FACE_CLEANUP_PROMPT,
+  TOP_REPAIR_PROMPT,
   ExtractedFeatures,
   buildGenerationPrompt,
   extractFeatures,
   generateAvatar,
   pickCuteElements,
 } from "@/lib/pipeline";
-import { normalizeFraming } from "@/lib/normalize";
+import { normalizeFraming, topEdgeTouched } from "@/lib/normalize";
 import { applyWatermark } from "@/lib/watermark";
 import { stashDownload } from "@/lib/downloads";
 
@@ -66,13 +67,18 @@ export async function POST(req: NextRequest) {
       rawUrl = await generateAvatar(FACE_CLEANUP_PROMPT, rawUrl);
     }
 
-    const imgRes = await fetch(rawUrl);
+    let imgRes = await fetch(rawUrl);
     if (!imgRes.ok) {
       throw new Error(`Failed to download generated image (${imgRes.status})`);
     }
-    const normalized = await normalizeFraming(
-      Buffer.from(await imgRes.arrayBuffer())
-    );
+    let imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    // If the head got cut off at the canvas top, run one repair pass.
+    if (await topEdgeTouched(imgBuf)) {
+      rawUrl = await generateAvatar(TOP_REPAIR_PROMPT, rawUrl);
+      imgRes = await fetch(rawUrl);
+      if (imgRes.ok) imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    }
+    const normalized = await normalizeFraming(imgBuf);
     const watermarked = await applyWatermark(normalized);
     const downloadToken = stashDownload(normalized);
 

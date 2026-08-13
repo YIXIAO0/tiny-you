@@ -89,3 +89,18 @@ export async function normalizeFraming(
     .jpeg({ quality: 92 })
     .toBuffer();
 }
+
+/** True if the top edge of the image has non-white content (head cut off). */
+export async function topEdgeTouched(input: Buffer): Promise<boolean> {
+  const { data, info } = await sharp(input)
+    .flatten({ background: "#ffffff" })
+    .resize(64, 64, { fit: "fill" })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const ch = info.channels;
+  for (let x = 0; x < 64; x++) {
+    const i = x * ch;
+    if (data[i] < 235 || data[i + 1] < 235 || data[i + 2] < 235) return true;
+  }
+  return false;
+}

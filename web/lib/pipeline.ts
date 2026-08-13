@@ -262,6 +262,11 @@ export const FACE_CLEANUP_PROMPT =
   "去掉所有胡须、胡茬、绒毛和任何青灰色阴影，让这些区域的肤色和脸颊完全一致、均匀、干净。" +
   "除此之外的一切保持原样完全不变：发型、五官、表情、眼神、饰品、构图、纯白背景全部不动。";
 
+/** Repair pass when the generated head touches the canvas top edge. */
+export const TOP_REPAIR_PROMPT =
+  "画面顶部的头发被裁切了。把头顶补画完整：整体把头部缩小一些并居中，向上留出充足空白，" +
+  "画出完整自然的头顶和头发轮廓。除此之外的一切保持原样完全不变：脸、五官、表情、发型风格、饰品、纯白背景都不动。";
+
 export async function generateAvatar(
   prompt: string,
   imageDataUrl?: string
