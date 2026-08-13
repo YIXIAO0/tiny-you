@@ -11,7 +11,7 @@ import { normalizeFraming } from "@/lib/normalize";
 import { applyWatermark } from "@/lib/watermark";
 import { stashDownload } from "@/lib/downloads";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 interface GenerateRequest {
   imageDataUrl?: string;

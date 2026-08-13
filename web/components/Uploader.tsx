@@ -19,26 +19,59 @@ export default function Uploader() {
   const [error, setError] = useState<string | null>(null);
   const [enlarged, setEnlarged] = useState(false);
 
-  function onFile(file: File | undefined) {
+  function resizeToDataUrl(file: File, maxDim = 1600): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const original = reader.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          if (scale === 1 && file.size < 1024 * 1024) {
+            resolve(original);
+            return;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(original);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.88));
+        };
+        img.onerror = () => reject(new Error("Could not read this image."));
+        img.src = original;
+      };
+      reader.onerror = () => reject(new Error("Could not read this file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function onFile(file: File | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("Please choose an image file.");
       setPhase("error");
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setError("Image is too large — please keep it under 8MB.");
+    if (file.size > 25 * 1024 * 1024) {
+      setError("Image is too large — please keep it under 25MB.");
       setPhase("error");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setDataUrl(reader.result as string);
+    try {
+      const resized = await resizeToDataUrl(file);
+      setDataUrl(resized);
       setResult(null);
       setError(null);
       setPhase("ready");
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read this image.");
+      setPhase("error");
+    }
   }
 
   async function generate() {
@@ -51,7 +84,17 @@ export default function Uploader() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageDataUrl: dataUrl }),
       });
-      const data = (await res.json()) as GenerateResponse;
+      const text = await res.text();
+      let data: GenerateResponse;
+      try {
+        data = JSON.parse(text) as GenerateResponse;
+      } catch {
+        throw new Error(
+          res.status === 413
+            ? "This photo is too large — please try a smaller one."
+            : "The server had a hiccup — please try again in a moment."
+        );
+      }
       if (!res.ok || data.error) {
         throw new Error(data.error ?? `Request failed (${res.status})`);
       }
