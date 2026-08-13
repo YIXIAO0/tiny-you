@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   DEAGE_PROMPT,
+  FACE_CLEANUP_PROMPT,
   ExtractedFeatures,
   buildGenerationPrompt,
   extractFeatures,
@@ -58,7 +59,12 @@ export async function POST(req: NextRequest) {
     if (sourceImage) {
       sourceImage = await generateAvatar(DEAGE_PROMPT, sourceImage);
     }
-    const rawUrl = await generateAvatar(prompt, sourceImage);
+    let rawUrl = await generateAvatar(prompt, sourceImage);
+    // Bearded/stubbled source photos leak shadows through i2i — run a
+    // surgical cleanup pass only when the extraction flagged facial hair.
+    if (body.imageDataUrl && features.facial_hair?.includes("有")) {
+      rawUrl = await generateAvatar(FACE_CLEANUP_PROMPT, rawUrl);
+    }
 
     const imgRes = await fetch(rawUrl);
     if (!imgRes.ok) {

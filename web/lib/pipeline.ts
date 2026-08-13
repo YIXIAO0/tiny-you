@@ -15,6 +15,7 @@ export interface ExtractedFeatures {
   eyes: { eyelid: string; size: string; shape_gaze: string; color: string };
   expression: { type: string; personality: string };
   face_skin: { face_shape: string; skin_tone: string; skin_detail: string };
+  facial_hair?: string;
   distinctive: string[];
 }
 
@@ -40,6 +41,7 @@ JSON 结构：
   "eyes": { "eyelid": "单眼皮|双眼皮|内双", "size": "偏大|适中|偏小", "shape_gaze": "", "color": "" },
   "expression": { "type": "", "personality": "" },
   "face_skin": { "face_shape": "", "skin_tone": "", "skin_detail": "腮红/雀斑等，无则'无'" },
+  "facial_hair": "无 | 有（照片人物有任何胡须、胡茬或唇上下巴的毛发阴影就写'有'）",
   "distinctive": ["", ""]
 }`;
 
@@ -239,11 +241,18 @@ export const DEAGE_PROMPT =
   "观察TA五官的特征（眼型、眉形、鼻子嘴唇的特点、脸型），把这些特征自然地长在一个真实的3-4岁幼童脸上。" +
   "最重要的标准：成品必须看起来就是一张真实小孩的照片，可爱、软糯、有童真——" +
   "绝不能像一张缩小的大人脸，绝不能'又老又小'，绝不能怪异。" +
-  "脸型跟随本人：瘦长脸就是清秀的小瘦脸，圆脸才是圆脸。气质跟随本人：帅气的就是帅气可爱的小孩。" +
+  "脸型跟随本人：瘦长脸就是清秀的小瘦脸，圆脸才是圆脸；脸的宽高比例必须自然协调，绝不把脸画宽画扁，禁止大饼脸。" +
+  "五官要立体有神采，眼神明亮有灵气。气质跟随本人：帅气的就是帅气可爱的小孩。" +
   "发型：保留照片的发色和卷直质地，但样式换成这个人小时候会有的自然儿童发型，" +
   "整头发的质地必须一致连贯——绝不能头顶一种质地、两侧另一种质地。" +
   "嘴唇上方、嘴角四周和下巴彻底光洁：无胡子无胡茬无绒毛无阴影，肤色与脸颊一致；无皱纹、无喉结。" +
   "纯白背景，画面里只有完整的头部，没有脖子、肩膀和衣物。摄影级写实，不加任何饰品。";
+
+/** Conditional pass 3: surgical facial-hair removal, everything else untouched. */
+export const FACE_CLEANUP_PROMPT =
+  "只做一件事：把这个小孩嘴唇上方、嘴角四周和下巴的皮肤修得彻底光洁干净——" +
+  "去掉所有胡须、胡茬、绒毛和任何青灰色阴影，让这些区域的肤色和脸颊完全一致、均匀、干净。" +
+  "除此之外的一切保持原样完全不变：发型、五官、表情、眼神、饰品、构图、纯白背景全部不动。";
 
 export async function generateAvatar(
   prompt: string,
