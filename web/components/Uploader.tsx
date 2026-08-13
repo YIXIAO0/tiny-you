@@ -123,7 +123,7 @@ export default function Uploader() {
       )}
       {phase === "working" && (
         <p className="status">
-          Studying your photo, then painting. About twenty seconds.
+          Studying your photo, then painting. About half a minute.
         </p>
       )}
       {phase === "error" && <p className="status error">{error}</p>}

@@ -83,8 +83,8 @@ const CUTE_ELEMENTS: CuteElement[] = [
 export function pickCuteElements(showsTeeth: boolean): string[] {
   const pool = CUTE_ELEMENTS.filter((e) => !e.requiresTeeth || showsTeeth);
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  const roll = Math.random();
-  const count = roll < 0.15 ? 0 : roll < 0.7 ? 1 : 2;
+  // At most ONE accessory per portrait — stacking reads as clutter.
+  const count = Math.random() < 0.15 ? 0 : 1;
   return shuffled.slice(0, count).map((e) => e.prompt);
 }
 
@@ -97,14 +97,12 @@ export function buildGenerationPrompt(
 
   if (hasSourcePhoto) {
     parts.push(
-      "把输入照片中的孩子演绎成一张可爱的大头贴贴纸。" +
-        "构图规则（最高优先级，与照片无关）：照片只提供这个孩子的长相，绝不参考照片的构图、姿势、取景和衣着。" +
-        "输出永远是一个悬浮在纯白背景上的'剪出来的头'——下巴边缘就是内容的结束，" +
-        "绝对没有脖子、没有肩膀、没有衣领、没有任何衣服和身体，无论照片里拍到了什么。" +
-        "呈现的是这个孩子3-4岁幼童时期的样子（最高优先级）：" +
-        "不管照片里的孩子几岁，都要低龄化成奶萌幼童——更圆更肉的婴儿肥脸颊、饱满的额头、幼态的五官比例、软糯的气质。" +
-        "照片是长相的参考基准：必须保留这个人的五官特征和神韵，家人一眼认出'这就是TA小时候'。" +
-        "发型跟随照片的样式（颜色、卷直、长短、刘海），但画得更柔软细腻，像幼童的胎毛发质。" +
+      "任务：把输入照片中的孩子变回TA三四岁婴幼儿时期的样子，做成可爱的大头贴贴纸。" +
+        "两条同时成立：①是同一个人——保留五官特征和神韵，家人一眼认出；" +
+        "②年龄明显变小到3-4岁——圆脑袋、饱满额头、短小下巴，脸颊有柔软的婴儿肥轻轻鼓起。" +
+        "脸型分寸：宽高比例自然协调，绝不把脸画宽画胖，禁止大饼脸、禁止双下巴。" +
+        "构图（与照片无关）：纯白背景上一个剪出来的悬浮头部，下巴边缘即内容结束，绝无脖子、肩膀、衣物。" +
+        "发型跟随照片（颜色、卷直、长短、刘海、蓬松、遮耳），发质是幼儿的细软胎毛感。" +
         "这个孩子最有辨识度的特征要比照片里更明显：" +
         "笑眼就让眼睛弯得更明显，耳朵大就让耳朵更突出，有酒窝就让酒窝更深，头发乱翘就翘得更俏皮，卷发就让卷卷的质感更明显更可爱。" +
         "发型是最重要的辨识特征之一，卷直属性绝对不能改变：照片是卷发就必须画成卷发（卷度只能比照片更明显、绝不能变直变顺），直发也绝不能画成卷发。" +
@@ -158,9 +156,14 @@ export function buildGenerationPrompt(
   if (cuteElements.length > 0) {
     parts.push(
       `可爱小彩蛋（要画得精致真实）：${cuteElements.join("；")}。` +
-        "彩蛋饰品不能遮挡五官辨识度，不改变发型和长相本身。"
+        "只画这一件彩蛋饰品，不能遮挡五官辨识度，不改变发型和长相本身。"
     );
   }
+
+  parts.push(
+    "饰品纪律：除了上面明确要求的饰品和照片里本来就有的发饰之外，" +
+      "绝对不要自行添加任何其他饰品——严禁鼻钉、项链、纹身贴、多余的眼镜或头饰。"
+  );
 
   parts.push(
     "整体氛围（重点）：软萌可爱的幼儿感——肉嘟嘟的婴儿肥脸颊、柔软带绒毛感的发丝、奶萌天真的气质，" +
@@ -218,6 +221,13 @@ export async function extractFeatures(
   const jsonText = raw.replace(/^```(json)?\s*/i, "").replace(/```\s*$/, "");
   return JSON.parse(jsonText) as ExtractedFeatures;
 }
+
+/** Pass 1 of the i2i pipeline: a single-purpose de-aging transform. */
+export const DEAGE_PROMPT =
+  "把照片中的孩子变回TA三四岁婴幼儿时期的样子：圆圆的脑袋、饱满的大额头、短小的下巴，" +
+  "脸颊有柔软的婴儿肥轻轻鼓起；五官幼态化但严格保留这个人的特征和神韵——是同一个人的婴幼儿版本，家人一眼认出。" +
+  "脸的宽高比例自然协调，不把脸画宽。发型样式跟随照片（颜色、卷直、长短、刘海），发质变成幼儿的细软胎毛感。" +
+  "纯白背景，画面里只有完整的头部，没有脖子、肩膀和衣物。摄影级写实，不加任何饰品。";
 
 export async function generateAvatar(
   prompt: string,

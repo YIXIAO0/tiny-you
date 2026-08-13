@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  DEAGE_PROMPT,
   ExtractedFeatures,
   buildGenerationPrompt,
   extractFeatures,
@@ -50,7 +51,14 @@ export async function POST(req: NextRequest) {
       Boolean(body.imageDataUrl),
       cuteElements
     );
-    const rawUrl = await generateAvatar(prompt, body.imageDataUrl);
+
+    // Two-pass i2i: dedicated de-aging transform first, then styling/accessories.
+    // A single-purpose instruction beats one overloaded prompt on compliance.
+    let sourceImage = body.imageDataUrl;
+    if (sourceImage) {
+      sourceImage = await generateAvatar(DEAGE_PROMPT, sourceImage);
+    }
+    const rawUrl = await generateAvatar(prompt, sourceImage);
 
     const imgRes = await fetch(rawUrl);
     if (!imgRes.ok) {
