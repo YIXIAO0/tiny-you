@@ -90,7 +90,7 @@ export async function normalizeFraming(
     .toBuffer();
 }
 
-/** True if the top edge of the image has non-white content (head cut off). */
+/** True if the top/left/right edge has non-white content (content cut off). */
 export async function topEdgeTouched(input: Buffer): Promise<boolean> {
   const { data, info } = await sharp(input)
     .flatten({ background: "#ffffff" })
@@ -98,9 +98,13 @@ export async function topEdgeTouched(input: Buffer): Promise<boolean> {
     .raw()
     .toBuffer({ resolveWithObject: true });
   const ch = info.channels;
+  const dark = (idx: number): boolean =>
+    data[idx] < 235 || data[idx + 1] < 235 || data[idx + 2] < 235;
   for (let x = 0; x < 64; x++) {
-    const i = x * ch;
-    if (data[i] < 235 || data[i + 1] < 235 || data[i + 2] < 235) return true;
+    if (dark(x * ch)) return true;
+  }
+  for (let y = 0; y < 64; y++) {
+    if (dark(y * 64 * ch) || dark((y * 64 + 63) * ch)) return true;
   }
   return false;
 }

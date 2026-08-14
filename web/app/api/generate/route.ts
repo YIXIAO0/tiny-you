@@ -72,11 +72,12 @@ export async function POST(req: NextRequest) {
       throw new Error(`Failed to download generated image (${imgRes.status})`);
     }
     let imgBuf = Buffer.from(await imgRes.arrayBuffer());
-    // If the head got cut off at the canvas top, run one repair pass.
-    if (await topEdgeTouched(imgBuf)) {
+    // If content got cut off at a canvas edge, repair (up to 2 attempts).
+    for (let attempt = 0; attempt < 2 && (await topEdgeTouched(imgBuf)); attempt++) {
       rawUrl = await generateAvatar(TOP_REPAIR_PROMPT, rawUrl);
       imgRes = await fetch(rawUrl);
-      if (imgRes.ok) imgBuf = Buffer.from(await imgRes.arrayBuffer());
+      if (!imgRes.ok) break;
+      imgBuf = Buffer.from(await imgRes.arrayBuffer());
     }
     const normalized = await normalizeFraming(imgBuf);
     const watermarked = await applyWatermark(normalized);

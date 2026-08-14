@@ -168,7 +168,7 @@ export function buildGenerationPrompt(
         "辨识度特征要比照片更明显：笑眼更弯、大耳朵更突出、酒窝更深、卷发更卷更可爱。"
     );
     parts.push(
-      "【构图】纯白背景上一个剪出来的悬浮完整头部：端正朝前、居中、头顶发梢不被画面裁切，" +
+      "【构图】纯白背景上一个剪出来的悬浮完整头部：端正朝前、居中偏小，头部和头顶饰品（墨镜、蝴蝶结等）全部完整在画面内，上方留出充足空白，" +
         "下巴边缘即内容结束——绝无脖子、肩膀、衣物；照片里的图标、按钮、文字、水印一律忽略不画。"
     );
     parts.push(`【人物】${f.basic.ethnicity}${f.basic.gender}。`);
@@ -310,8 +310,8 @@ export const FACE_CLEANUP_PROMPT =
 
 /** Repair pass when the generated head touches the canvas top edge. */
 export const TOP_REPAIR_PROMPT =
-  "画面顶部的头发被裁切了。把头顶补画完整：整体把头部缩小一些并居中，向上留出充足空白，" +
-  "画出完整自然的头顶和头发轮廓。除此之外的一切保持原样完全不变：脸、五官、表情、发型风格、饰品、纯白背景都不动。";
+  "画面边缘把头部或头顶的饰品裁切到了。把整幅内容明显缩小并完全居中，四周（尤其上方）留出充足的纯白空白，" +
+  "补画出被裁切的部分——完整的头顶、头发轮廓和饰品。除此之外一切保持原样不变：脸、五官、表情、发型、肤色、纯白背景。";
 
 export async function generateAvatar(
   prompt: string,
