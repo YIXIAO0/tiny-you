@@ -7,7 +7,7 @@ import {
   buildGenerationPrompt,
   extractFeatures,
   generateAvatar,
-  pickCuteElements,
+  pickFunStyle,
 } from "@/lib/pipeline";
 import { normalizeFraming, topEdgeTouched } from "@/lib/normalize";
 import { applyWatermark } from "@/lib/watermark";
@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
     }
 
     const showsTeeth = /露齿|大笑|露出牙|咧嘴/.test(features.expression.type);
-    const cuteElements = pickCuteElements(showsTeeth, features.basic.gender);
+    const fun = pickFunStyle(showsTeeth, features.basic.gender);
     const prompt = buildGenerationPrompt(
       features,
       Boolean(body.imageDataUrl),
-      cuteElements
+      fun
     );
 
     // Two-pass i2i: dedicated de-aging transform first, then styling/accessories.

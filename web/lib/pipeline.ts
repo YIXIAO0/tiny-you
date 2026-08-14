@@ -78,6 +78,11 @@ const CUTE_ELEMENTS: CuteElement[] = [
     girlsOnly: true,
   },
   {
+    key: "silver-hoops",
+    prompt: "双耳戴着小巧的银色圈形耳环，精致有光泽",
+    girlsOnly: true,
+  },
+  {
     key: "teeth-gems",
     prompt:
       "牙齿上贴着几颗闪闪发光的小钻石牙饰，笑起来牙齿 bling bling 地闪着光",
@@ -97,10 +102,57 @@ export function pickCuteElements(showsTeeth: boolean, gender = ""): string[] {
   return shuffled.slice(0, count).map((e) => e.prompt);
 }
 
+export interface FunStyle {
+  gaze?: string;
+  expr?: string;
+  extras: string[];
+}
+
+const GAZE_POOL = [
+  "眼神明确地看向画面左侧，带出少量眼白，营造'偷偷看'的俏皮感",
+  "眼神明确地看向画面右侧，带出少量眼白，营造'偷偷看'的俏皮感",
+  "眼睛好奇地微微抬起看向上方，天真探索的神情",
+];
+
+const EXPR_POOL = [
+  "鼓起两边腮帮、嘟着小嘴，气鼓鼓又软乎乎的可爱样子",
+  "抿着嘴憋笑，嘴角上扬眼睛弯弯，一副藏不住笑意的样子",
+];
+
+const DECOR_POOL = [
+  "腮红明显加重，画成美式复古风的圆圆腮红",
+  "一侧脸颊上贴着一枚小小的星星贴纸，红黄蓝细线描边，精致可爱",
+  "头部四周飘着少量彩色碎纸片礼花，只出现在头部附近，不贴画面边缘不遮脸",
+];
+
+/** Roll the style dice: at most one face twist (gaze OR expression) plus at
+ *  most one extra (accessory or decoration). ~35% of rolls stay classic. */
+export function pickFunStyle(showsTeeth: boolean, gender = ""): FunStyle {
+  const isGirl = gender.includes("\u5973");
+  const fun: FunStyle = { extras: [] };
+  if (Math.random() < 0.35) return fun;
+  const twist = Math.random();
+  if (twist < 0.45) {
+    fun.gaze = GAZE_POOL[Math.floor(Math.random() * GAZE_POOL.length)];
+  } else if (twist < 0.7) {
+    fun.expr = EXPR_POOL[Math.floor(Math.random() * EXPR_POOL.length)];
+  }
+  if (Math.random() < 0.75) {
+    const pool = [
+      ...CUTE_ELEMENTS.filter(
+        (e) => (!e.requiresTeeth || showsTeeth) && (!e.girlsOnly || isGirl)
+      ).map((e) => e.prompt),
+      ...DECOR_POOL,
+    ];
+    fun.extras.push(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  return fun;
+}
+
 export function buildGenerationPrompt(
   f: ExtractedFeatures,
   hasSourcePhoto = false,
-  cuteElements: string[] = []
+  fun: FunStyle = { extras: [] }
 ): string {
   const parts: string[] = [];
 
@@ -148,10 +200,19 @@ export function buildGenerationPrompt(
       "眼睛的大小和形状严格按此描述还原，绝对禁止放大眼睛或美化眼型：写偏小就画偏小，单眼皮就画单眼皮，这是还原不是美颜。"
   );
 
-  parts.push(
-    `表情（重点）：${f.expression.type}，${f.expression.personality}的感觉。` +
-      "严格保持照片中笑容的原样幅度：抿嘴笑就闭着嘴完全不露牙齿，露齿笑才露出牙齿，绝不放大笑容。"
-  );
+  if (fun.expr) {
+    parts.push(
+      `表情（重点，本次俏皮变体）：${fun.expr}——在保留本人神韵（${f.expression.personality}）的前提下做这个可爱的小表情。`
+    );
+  } else {
+    parts.push(
+      `表情（重点）：${f.expression.type}，${f.expression.personality}的感觉。` +
+        "严格保持照片中笑容的原样幅度：抿嘴笑就闭着嘴完全不露牙齿，露齿笑才露出牙齿，绝不放大笑容。"
+    );
+  }
+  if (fun.gaze) {
+    parts.push(`眼神与角度（重点，本次花样）：${fun.gaze}。`);
+  }
 
   let skin = `肤色（按照片忠实还原）：${f.face_skin.skin_tone}。${f.face_skin.face_shape}`;
   if (f.face_skin.skin_detail && f.face_skin.skin_detail !== "无") {
@@ -169,10 +230,10 @@ export function buildGenerationPrompt(
     );
   }
 
-  if (cuteElements.length > 0) {
+  if (fun.extras.length > 0) {
     parts.push(
-      `可爱小彩蛋（要画得精致真实）：${cuteElements.join("；")}。` +
-        "只画这一件彩蛋饰品，不能遮挡五官辨识度，不改变发型和长相本身。"
+      `可爱小彩蛋（要画得精致真实）：${fun.extras.join("；")}。` +
+        "只画这一件彩蛋，不能遮挡五官辨识度，不改变发型和长相本身。"
     );
   }
 
