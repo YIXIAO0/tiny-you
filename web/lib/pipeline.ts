@@ -169,7 +169,7 @@ export function buildGenerationPrompt(
     );
     parts.push(
       "【构图】纯白背景上一个剪出来的悬浮完整头部：端正朝前、居中偏小，头部和头顶饰品（墨镜、蝴蝶结等）全部完整在画面内，上方留出充足空白，" +
-        "下巴边缘即内容结束——绝无脖子、肩膀、衣物；照片里的图标、按钮、文字、水印一律忽略不画。"
+        "下巴边缘即内容结束——绝无脖子、肩膀、衣物；背景从边到边都是纯白色，绝无边框、相框、深色底或色块；照片里的图标、按钮、文字、水印一律忽略不画。"
     );
     parts.push(`【人物】${f.basic.ethnicity}${f.basic.gender}。`);
   } else {
@@ -311,7 +311,7 @@ export const FACE_CLEANUP_PROMPT =
 /** Repair pass when the generated head touches the canvas top edge. */
 export const TOP_REPAIR_PROMPT =
   "画面边缘把头部或头顶的饰品裁切到了。把整幅内容明显缩小并完全居中，四周（尤其上方）留出充足的纯白空白，" +
-  "补画出被裁切的部分——完整的头顶、头发轮廓和饰品。除此之外一切保持原样不变：脸、五官、表情、发型、肤色、纯白背景。";
+  "补画出被裁切的部分——完整的头顶、头发轮廓和饰品。绝不添加任何边框或相框，背景从边到边保持纯白。其他一切保持原样不变：脸、五官、表情、发型、肤色。";
 
 export async function generateAvatar(
   prompt: string,

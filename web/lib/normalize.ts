@@ -10,7 +10,8 @@ const SCAN_WIDTH = 512;
  */
 export async function normalizeFraming(
   input: Buffer,
-  headRatio = 0.68
+  headRatio = 0.68,
+  depth = 0
 ): Promise<Buffer> {
   const meta = await sharp(input).flatten({ background: "#ffffff" }).metadata();
   const W = meta.width ?? 0;
@@ -52,6 +53,52 @@ export async function normalizeFraming(
     }
   }
   if (maxX <= minX || maxY <= minY) return input;
+
+  // Frame stripper: if the model painted a border/colored mat around the
+  // portrait, the corners are dark. Locate the inner picture and recurse.
+  if (depth === 0) {
+    const darkAt = (x: number, y: number): boolean => {
+      const i = (y * SCAN_WIDTH + x) * ch;
+      return data[i] < 200 && data[i + 1] < 200 && data[i + 2] < 200;
+    };
+    const corners = [
+      darkAt(1, 1),
+      darkAt(SCAN_WIDTH - 2, 1),
+      darkAt(1, SH - 2),
+      darkAt(SCAN_WIDTH - 2, SH - 2),
+    ].filter(Boolean).length;
+    if (corners >= 3) {
+      const rowDark = (y: number): number => {
+        let d = 0;
+        for (let x = 0; x < SCAN_WIDTH; x++) if (darkAt(x, y)) d++;
+        return d / SCAN_WIDTH;
+      };
+      const colDark = (x: number): number => {
+        let d = 0;
+        for (let y = 0; y < SH; y++) if (darkAt(x, y)) d++;
+        return d / SH;
+      };
+      let t = 0;
+      let b = 0;
+      let l = 0;
+      let r = 0;
+      while (t < SH / 3 && rowDark(t) > 0.6) t++;
+      while (b < SH / 3 && rowDark(SH - 1 - b) > 0.6) b++;
+      while (l < SCAN_WIDTH / 3 && colDark(l) > 0.6) l++;
+      while (r < SCAN_WIDTH / 3 && colDark(SCAN_WIDTH - 1 - r) > 0.6) r++;
+      if (t + b + l + r > 0) {
+        const m = 2;
+        const left = Math.round((l + m) * scale);
+        const top = Math.round((t + m) * scale);
+        const width = Math.max(8, W - left - Math.round((r + m) * scale));
+        const height = Math.max(8, H - top - Math.round((b + m) * scale));
+        const inner = await sharp(input)
+          .extract({ left, top, width, height })
+          .toBuffer();
+        return normalizeFraming(inner, headRatio, 1);
+      }
+    }
+  }
 
   const bx0 = minX * scale;
   const bx1 = maxX * scale;
